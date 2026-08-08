@@ -1,0 +1,63 @@
+X [ERROR] TS2339: Property 'fromPeriodId' does not exist on type 'TuitionComponent'. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:54:54:
+      54 │ ...orm-control" [(ngModel)]="fromPeriodId" (ngModelChange)="applyF...
+         ╵                              ~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'fromPeriodId' does not exist on type 'TuitionComponent'. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:54:54:
+      54 │ ...orm-control" [(ngModel)]="fromPeriodId" (ngModelChange)="applyF...
+         ╵                              ~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'getPeriodOptions' does not exist on type 'TuitionComponent'. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:56:30:
+      56 │               @for (period of getPeriodOptions(); track period.id) {
+         ╵                               ~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'toPeriodId' does not exist on type 'TuitionComponent'. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:63:54:
+      63 │ ...form-control" [(ngModel)]="toPeriodId" (ngModelChange)="applyFi...
+         ╵                               ~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'toPeriodId' does not exist on type 'TuitionComponent'. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:63:54:
+      63 │ ...form-control" [(ngModel)]="toPeriodId" (ngModelChange)="applyFi...
+         ╵                               ~~~~~~~~~~
+
+
+X [ERROR] TS2339: Property 'getPeriodOptions' does not exist on type 'TuitionComponent'. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:65:30:
+      65 │               @for (period of getPeriodOptions(); track period.id) {
+         ╵                               ~~~~~~~~~~~~~~~~
+
+
+X [ERROR] TS2554: Expected 1 arguments, but got 2. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:84:46:
+      84 │ ...g>{{ getGroupTotal(group, groupPeriods) | number:'1.0-0' }}k</s...
+         ╵                              ~~~~~~~~~~~~
+
+
+X [ERROR] TS2554: Expected 1 arguments, but got 2. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:173:46:
+      173 │ ...       {{ getStudentTotal(row, groupPeriods) | number:'1.0-0' }}k
+          ╵                                   ~~~~~~~~~~~~
+
+
+X [ERROR] TS2554: Expected 1 arguments, but got 2. [plugin angular-compiler]
+
+    src/app/tuition/tuition.ts:186:44:
+      186 │ ...       {{ getGroupTotal(group, groupPeriods) | number:'1.0-0' }}k
+          ╵                                   ~~~~~~~~~~~~
+
+

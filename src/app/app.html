@@ -1,0 +1,204 @@
+<ng-container *ngIf="authService.isLoggedIn(); else loginLayout">
+  <div class="app-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" [class.collapsed]="isSidebarCollapsed()">
+      <div class="logo-container">
+        @if (centerLogoImage()) {
+          <img class="logo-image" [src]="centerLogoImage()" [alt]="centerName() + ' logo'">
+        } @else {
+          <span class="material-symbols-outlined logo-icon">{{ centerLogoIcon() }}</span>
+        }
+        <span class="logo-text">{{ centerName() }}</span>
+        <button class="toggle-sidebar-btn" (click)="toggleSidebar()" [title]="isSidebarCollapsed() ? 'Mở rộng menu' : 'Thu gọn menu'">
+          <span class="material-symbols-outlined">
+            {{ isSidebarCollapsed() ? 'chevron_right' : 'chevron_left' }}
+          </span>
+        </button>
+      </div>
+
+      <!-- Navigation links (Filtered dynamically based on RBAC permissions) -->
+      <nav class="sidebar-nav">
+        <a class="nav-link" routerLink="/dashboard" routerLinkActive="active" *ngIf="authService.hasPermission('dashboard')">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span>Tổng quan</span>
+        </a>
+        <a class="nav-link" routerLink="/schedule" routerLinkActive="active" *ngIf="authService.hasPermission('schedule')">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span>Lịch học</span>
+        </a>
+        <a class="nav-link" routerLink="/tuition" routerLinkActive="active" *ngIf="authService.hasPermission('tuition')">
+          <span class="material-symbols-outlined">payments</span>
+          <span>Học phí</span>
+        </a>
+        <a class="nav-link" routerLink="/students" routerLinkActive="active" *ngIf="authService.hasPermission('students')">
+          <span class="material-symbols-outlined">group</span>
+          <span>Học sinh</span>
+        </a>
+        <a class="nav-link" routerLink="/classes" routerLinkActive="active" *ngIf="authService.hasPermission('classes')">
+          <span class="material-symbols-outlined">school</span>
+          <span>Lớp học</span>
+        </a>
+        <a class="nav-link" routerLink="/attendance" routerLinkActive="active" *ngIf="authService.hasPermission('attendance')">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span>Điểm danh</span>
+        </a>
+        <a class="nav-link" routerLink="/penalties" routerLinkActive="active" *ngIf="authService.hasPermission('penalties')">
+          <span class="material-symbols-outlined">gavel</span>
+          <span>Phạt</span>
+        </a>
+        <a class="nav-link" routerLink="/reports" routerLinkActive="active" *ngIf="authService.hasPermission('reports')">
+          <span class="material-symbols-outlined">analytics</span>
+          <span>Báo cáo</span>
+        </a>
+        <a class="nav-link" routerLink="/subjects" routerLinkActive="active" *ngIf="authService.hasPermission('subjects')">
+          <span class="material-symbols-outlined">settings_suggest</span>
+          <span>Môn học</span>
+        </a>
+        <a class="nav-link" routerLink="/accounts" routerLinkActive="active" *ngIf="authService.hasPermission('accounts')">
+          <span class="material-symbols-outlined">manage_accounts</span>
+          <span>Tài khoản</span>
+        </a>
+      </nav>
+
+      <!-- Sidebar Footer with User Info, Logout & Version -->
+      <div class="sidebar-footer">
+        <!-- User info card (Expanded mode) -->
+        <div class="sidebar-user-info" *ngIf="!isSidebarCollapsed()" style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.75rem; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; margin-bottom: 0.25rem;">
+          <div style="display: flex; flex-direction: column; overflow: hidden; text-align: left;">
+            <span style="font-size: 0.85rem; font-weight: 600; color: #fff; line-height: 1.2; white-space: nowrap; text-overflow: ellipsis; overflow: hidden;" [title]="authService.currentUser()?.fullName">{{ authService.currentUser()?.fullName }}</span>
+            <span style="font-size: 0.7rem; color: var(--text-secondary); line-height: 1.2;">{{ authService.currentUser()?.role === 'Manager' ? 'Quản lý' : 'Giáo viên' }}</span>
+          </div>
+          <button class="btn btn-secondary" (click)="authService.logout()" title="Đăng xuất" style="padding: 0.35rem; min-width: auto; border-radius: 8px; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); flex-shrink: 0;">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem; color: #f87171;">logout</span>
+          </button>
+        </div>
+
+        <!-- Logout button only (Collapsed mode) -->
+        <div class="sidebar-user-collapsed" *ngIf="isSidebarCollapsed()" style="display: flex; justify-content: center; width: 100%; margin-bottom: 0.25rem;">
+          <button class="btn btn-secondary" (click)="authService.logout()" title="Đăng xuất ({{ authService.currentUser()?.fullName }})" style="padding: 0.5rem; min-width: auto; border-radius: 12px; border-color: rgba(239, 68, 68, 0.2); background: rgba(239, 68, 68, 0.05); width: 42px; height: 42px; display: flex; align-items: center; justify-content: center;">
+            <span class="material-symbols-outlined" style="font-size: 1.25rem; color: #f87171;">logout</span>
+          </button>
+        </div>
+
+        <!-- Version Info -->
+        <div style="text-align: center; color: var(--text-secondary); font-size: 0.7rem; font-weight: 500;">
+          <span *ngIf="!isSidebarCollapsed()">Phiên bản v1.2.0</span>
+          <span *ngIf="isSidebarCollapsed()">v1.2</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <div class="content-wrapper">
+      <!-- Top Bar -->
+      <header class="top-bar" style="padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background: rgba(17, 24, 39, 0.4); border-bottom: 1px solid var(--border-color); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
+        <div>
+          <h2 style="font-size: 1.25rem; font-weight: 600; margin: 0 0 0.25rem; color: #fff;">{{ apiService.activeSemesterName() || 'Đang tải...' }}</h2>
+          <span style="font-size: 0.75rem; color: var(--text-secondary);">Hệ thống Quản lý Học tập QLStudy</span>
+        </div>
+        
+        <div class="top-bar-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+          <!-- Semester Selector (Moved to top-bar right) -->
+          <div class="semester-selector-top" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(31, 41, 55, 0.5); border: 1px solid var(--border-color); padding: 0.25rem 0.5rem 0.25rem 0.75rem; border-radius: 12px;">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem; color: var(--text-secondary);">calendar_month</span>
+            <select class="semester-select-top" [value]="apiService.selectedSemesterId()" (change)="onSemesterChange($event)" style="background: none; border: none; color: #fff; font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer; padding-right: 1.5rem; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right center; background-size: 8px auto;">
+              @for (sem of semesters(); track sem.id) {
+                <option [value]="sem.id" style="background: #111827; color: #fff;">{{ sem.name }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Theme Settings Dropdown -->
+          <div class="settings-dropdown-wrapper">
+            <button class="btn btn-secondary" (click)="toggleSettingsDropdown(); $event.stopPropagation();" title="Cấu hình giao diện" style="padding: 0.5rem 0.75rem; border-radius: 12px;">
+              <span class="material-symbols-outlined" style="font-size: 1.25rem;">palette</span>
+              <span>Giao diện</span>
+              <span class="material-symbols-outlined dropdown-arrow">
+                {{ showSettingsDropdown() ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
+              </span>
+            </button>
+            
+            @if (showSettingsDropdown()) {
+              <div class="settings-dropdown-menu card" (click)="$event.stopPropagation();">
+                <span class="theme-label">Chế độ nền</span>
+                <div class="bg-theme-options">
+                  <button class="bg-theme-dot bg-dot-white" [class.active]="activeBg === 'white'" (click)="changeBg('white')" title="Nền Trắng"></button>
+                  <button class="bg-theme-dot bg-dot-black" [class.active]="activeBg === 'black'" (click)="changeBg('black')" title="Nền Đen"></button>
+                  <button class="bg-theme-dot bg-dot-yellow" [class.active]="activeBg === 'yellow'" (click)="changeBg('yellow')" title="Nền Vàng Kem"></button>
+                  <button class="bg-theme-dot bg-dot-pink" [class.active]="activeBg === 'pink'" (click)="changeBg('pink')" title="Nền Hồng"></button>
+                  <button class="bg-theme-dot bg-dot-red" [class.active]="activeBg === 'red'" (click)="changeBg('red')" title="Nền Đỏ đậm"></button>
+                </div>
+
+                <span class="theme-label" style="margin-top: 0.5rem;">Màu chủ đạo</span>
+                <div class="theme-options">
+                  <button class="theme-dot dot-indigo" [class.active]="activeTheme === 'indigo'" (click)="changeTheme('indigo')" title="Màu Indigo"></button>
+                  <button class="theme-dot dot-emerald" [class.active]="activeTheme === 'emerald'" (click)="changeTheme('emerald')" title="Màu Emerald"></button>
+                  <button class="theme-dot dot-violet" [class.active]="activeTheme === 'violet'" (click)="changeTheme('violet')" title="Màu Violet"></button>
+                  <button class="theme-dot dot-rose" [class.active]="activeTheme === 'rose'" (click)="changeTheme('rose')" title="Màu Rose"></button>
+                  <button class="theme-dot dot-amber" [class.active]="activeTheme === 'amber'" (click)="changeTheme('amber')" title="Màu Amber"></button>
+                  <button class="theme-dot dot-cyan" [class.active]="activeTheme === 'cyan'" (click)="changeTheme('cyan')" title="Màu Cyan"></button>
+                </div>
+
+                <div class="brand-settings">
+                  <span class="theme-label">Tên trung tâm</span>
+                  <input class="form-control brand-input"
+                         type="text"
+                         [ngModel]="centerName()"
+                         (ngModelChange)="updateCenterName($event)"
+                         placeholder="Tên trung tâm">
+
+                  <span class="theme-label">Logo</span>
+                  <div class="brand-icon-options">
+                    @for (icon of logoIconOptions; track icon) {
+                      <button class="brand-icon-btn"
+                              [class.active]="!centerLogoImage() && centerLogoIcon() === icon"
+                              (click)="updateCenterLogoIcon(icon)"
+                              [title]="icon">
+                        <span class="material-symbols-outlined">{{ icon }}</span>
+                      </button>
+                    }
+                  </div>
+
+                  <label class="brand-upload-btn">
+                    <span class="material-symbols-outlined">upload</span>
+                    Tải ảnh logo
+                    <input type="file" accept="image/*" (change)="onLogoFileSelected($event)">
+                  </label>
+
+                  @if (centerLogoImage()) {
+                    <button class="btn btn-secondary brand-clear-btn" (click)="clearLogoImage()">
+                      <span class="material-symbols-outlined">auto_stories</span>
+                      Dùng biểu tượng
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+
+        </div>
+      </header>
+
+      <!-- Routed Page -->
+      <main class="main-content">
+        <router-outlet></router-outlet>
+      </main>
+    </div>
+  </div>
+</ng-container>
+
+<ng-template #loginLayout>
+  <router-outlet></router-outlet>
+</ng-template>
+
+<!-- Toast Alert Notifications -->
+<div class="toast-container">
+  @for (toast of toasts(); track toast.id) {
+    <div class="toast" [ngClass]="{'toast-success': toast.type === 'success', 'toast-danger': toast.type === 'danger'}">
+      <span class="material-symbols-outlined">
+        {{ toast.type === 'success' ? 'check_circle' : 'error' }}
+      </span>
+      <span>{{ toast.message }}</span>
+    </div>
+  }
+</div>

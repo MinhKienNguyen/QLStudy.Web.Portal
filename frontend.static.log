@@ -1,0 +1,20 @@
+Starting up http-server, serving dist/Frontend/browser
+
+http-server version: 14.1.1
+
+http-server settings: 
+CORS: disabled
+Cache: 3600 seconds
+Connection Timeout: 120 seconds
+Directory Listings: visible
+AutoIndex: visible
+Serve GZIP Files: false
+Serve Brotli Files: false
+Default File Extension: none
+
+Available on:
+  http://localhost:4200
+Unhandled requests will be served from: http://localhost:4200?
+Hit CTRL-C to stop the server
+
+[2026-06-26T14:49:03.543Z]  "GET /" "Mozilla/5.0 (Windows NT; Windows NT 10.0; en-US) WindowsPowerShell/5.1.18362.145"

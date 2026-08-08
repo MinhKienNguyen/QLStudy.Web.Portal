@@ -1,0 +1,40 @@
+
+> frontend@0.0.0 start
+> ng serve --host localhost --port 4200 --proxy-config proxy.conf.json
+
+> Building...
+√ Building...
+Initial chunk files | Names         |  Raw size
+main.js             | main          | 758.61 kB | 
+styles.css          | styles        |  18.29 kB | 
+
+                    | Initial total | 776.90 kB
+
+Application bundle generation complete. [5.692 seconds] - 2026-07-30T12:32:12.052Z
+
+Watch mode enabled. Watching for file changes...
+NOTE: Raw file sizes do not reflect development server per-request transformations.
+  ➜  Local:   http://localhost:4200/
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Application bundle generation failed. [4.120 seconds] - 2026-08-08T03:20:06.428Z
+
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Initial chunk files | Names         |  Raw size
+main.js             | main          | 765.13 kB | 
+styles.css          | styles        |  18.29 kB | 
+
+                    | Initial total | 783.42 kB
+
+Application bundle generation complete. [0.894 seconds] - 2026-08-08T03:21:01.932Z
+
+Page reload sent to client(s).
+> Changes detected. Rebuilding...
+√ Changes detected. Rebuilding...
+Initial chunk files | Names |  Raw size
+main.js             | main  | 765.62 kB | 
+
+Application bundle generation complete. [0.892 seconds] - 2026-08-08T03:21:51.580Z
+
+Component update sent to client(s).

@@ -1,0 +1,211 @@
+<div class="attendance-container">
+  <div class="header-section">
+    <div>
+      <h1>Điểm Danh Học Sinh</h1>
+      <p>Chọn lớp học và ngày để cập nhật thông tin hiện diện.</p>
+    </div>
+    
+    @if (selectedClassId()) {
+      <button class="btn btn-primary" (click)="saveAttendance()">
+        <span class="material-symbols-outlined">save</span>
+        <span>Lưu điểm danh</span>
+      </button>
+    }
+  </div>
+
+  <div class="control-grid">
+    <!-- Filter Controls -->
+    <div class="card filter-card">
+      <div class="form-group select-group">
+        <label class="form-label">Lớp học</label>
+        <select class="form-control" [ngModel]="selectedClassId()" (ngModelChange)="setSelectedClassId($event)">
+          @for (c of classes(); track c.id) {
+            <option [ngValue]="c.id">{{ c.name }}</option>
+          } @empty {
+            <option [ngValue]="null">Không có lớp học nào</option>
+          }
+        </select>
+      </div>
+
+      <div class="form-group date-group">
+        <label class="form-label">Ngày điểm danh</label>
+        <input type="date" class="form-control" [ngModel]="selectedDate()" (ngModelChange)="selectedDate.set($event)">
+      </div>
+
+      @if (selectedClassId()) {
+        <div class="form-group status-group">
+          <label class="form-label">Trạng thái buổi học</label>
+          <div class="session-status-options">
+            <button class="status-option-btn" [class.active]="sessionStatus() === 'Normal'" (click)="setSessionStatus('Normal')">
+              📖 Học bình thường
+            </button>
+            <button class="status-option-btn text-info" [class.active]="sessionStatus() === 'Holiday'" (click)="setSessionStatus('Holiday')">
+              🎉 Nghỉ lễ
+            </button>
+            <button class="status-option-btn text-warning" [class.active]="sessionStatus() === 'ClassOff'" (click)="setSessionStatus('ClassOff')">
+              🚪 Nghỉ học
+            </button>
+          </div>
+        </div>
+      }
+
+      @if (selectedClassId() && attendanceRecords().length > 0 && sessionStatus() === 'Normal') {
+        <div class="bulk-actions">
+          <label class="form-label">Đặt nhanh cả lớp</label>
+          <div class="btn-group">
+            <button class="btn btn-secondary btn-sm text-success" (click)="setAllStatus('Present')">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem;">check_circle</span> Tất cả Có mặt
+            </button>
+            <button class="btn btn-secondary btn-sm text-danger" (click)="setAllStatus('Absent')">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem;">cancel</span> Tất cả Vắng
+            </button>
+            <button class="btn btn-secondary btn-sm text-warning" (click)="setAllStatus('Late')">
+              <span class="material-symbols-outlined" style="font-size: 1.1rem;">schedule</span> Tất cả Muộn
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  @if (selectedClassId()) {
+    <div class="attendance-layout">
+      <!-- Main Roster Area -->
+      <div class="roster-area">
+        @if (sessionStatus() === 'Holiday') {
+          <div class="card banner-card holiday-card-banner">
+            <span class="material-symbols-outlined banner-icon text-info">celebration</span>
+            <h2>Nghỉ lễ</h2>
+            <p>Hôm nay lớp nghỉ học do ngày lễ. Tất cả học sinh sẽ được lưu trạng thái nghỉ lễ.</p>
+            <button class="btn btn-secondary btn-sm" (click)="setSessionStatus('Normal')" style="margin-top: 1rem;">
+              📖 Quay lại học bình thường
+            </button>
+          </div>
+        } @else if (sessionStatus() === 'ClassOff') {
+          <div class="card banner-card classoff-card-banner">
+            <span class="material-symbols-outlined banner-icon text-warning">door_open</span>
+            <h2>Nghỉ học (Trung tâm cho phép)</h2>
+            <p>Buổi học được trung tâm cho phép nghỉ học. Tất cả học sinh sẽ được lưu trạng thái nghỉ học.</p>
+            <button class="btn btn-secondary btn-sm" (click)="setSessionStatus('Normal')" style="margin-top: 1rem;">
+              📖 Quay lại học bình thường
+            </button>
+          </div>
+        } @else {
+          <!-- Stats Summary -->
+          <div class="stats-summary-grid">
+            <div class="card stat-box">
+              <span class="stat-num">{{ totalCount() }}</span>
+              <span class="stat-lbl">Sĩ số</span>
+            </div>
+            <div class="card stat-box text-success">
+              <span class="stat-num">{{ presentCount() }}</span>
+              <span class="stat-lbl">Có mặt</span>
+            </div>
+            <div class="card stat-box text-danger">
+              <span class="stat-num">{{ absentCount() }}</span>
+              <span class="stat-lbl">Vắng mặt</span>
+            </div>
+            <div class="card stat-box text-warning">
+              <span class="stat-num">{{ lateCount() }}</span>
+              <span class="stat-lbl">Đi muộn</span>
+            </div>
+          </div>
+
+          <!-- Student Roster Table -->
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 60px; text-align: center;">STT</th>
+                  <th style="text-align: left;">Họ tên Học sinh</th>
+                  <th style="width: 320px; text-align: center;">Trạng thái</th>
+                  <th style="text-align: left; min-width: 220px;">Ghi chú</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (r of attendanceRecords(); track r.studentId; let idx = $index) {
+                  <tr>
+                    <td style="text-align: center; color: var(--text-muted);">{{ idx + 1 }}</td>
+                    <td style="font-weight: 600;">{{ r.studentName }}</td>
+                    <td>
+                      <div class="status-btn-group">
+                        <button class="status-btn present" 
+                                [class.active]="r.status === 'Present'" 
+                                (click)="setStatus(r, 'Present')">
+                          <span class="material-symbols-outlined icon-sm">check</span>
+                          <span>Có mặt</span>
+                        </button>
+                        <button class="status-btn absent" 
+                                [class.active]="r.status === 'Absent'" 
+                                (click)="setStatus(r, 'Absent')">
+                          <span class="material-symbols-outlined icon-sm">close</span>
+                          <span>Vắng</span>
+                        </button>
+                        <button class="status-btn late" 
+                                [class.active]="r.status === 'Late'" 
+                                (click)="setStatus(r, 'Late')">
+                          <span class="material-symbols-outlined icon-sm">schedule</span>
+                          <span>Muộn</span>
+                        </button>
+                      </div>
+                    </td>
+                    <td>
+                      <input type="text" class="form-control table-input" 
+                             placeholder="Lý do nghỉ, đi muộn..." 
+                             [(ngModel)]="r.note">
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                      Không tìm thấy học sinh nào trong lớp này.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+
+      <!-- History Sidebar -->
+      <div class="history-sidebar">
+        <div class="card history-card">
+          <h3>Lịch sử điểm danh</h3>
+          <p class="history-desc">Chọn một ngày để xem hoặc chỉnh sửa.</p>
+          <div class="history-list">
+            @for (h of historyDates(); track h.date) {
+              <div class="history-row" [class.active]="h.date === selectedDate()">
+                <button class="history-item" 
+                        [class.holiday]="h.status === 'Holiday'"
+                        [class.class-off]="h.status === 'ClassOff'"
+                        (click)="selectHistoryDate(h.date)">
+                  <span class="material-symbols-outlined">
+                    {{ h.status === 'Holiday' ? 'celebration' : (h.status === 'ClassOff' ? 'door_open' : 'event_note') }}
+                  </span>
+                  <span>{{ h.date }}</span>
+                  <span *ngIf="h.status === 'Holiday'" style="font-size: 0.7rem; font-weight: 600; opacity: 0.8; margin-left: auto; background: rgba(6, 182, 212, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">Nghỉ lễ</span>
+                  <span *ngIf="h.status === 'ClassOff'" style="font-size: 0.7rem; font-weight: 600; opacity: 0.8; margin-left: auto; background: rgba(245, 158, 11, 0.1); padding: 0.15rem 0.4rem; border-radius: 4px;">Nghỉ học</span>
+                </button>
+                <button class="history-delete-btn" (click)="deleteHistoryDate(h.date)" title="Xoá lịch sử điểm danh">
+                  <span class="material-symbols-outlined">delete</span>
+                </button>
+              </div>
+            } @empty {
+              <div class="empty-history">
+                <span class="material-symbols-outlined empty-icon">calendar_today</span>
+                <span>Chưa có buổi học nào được điểm danh.</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="card empty-state">
+      <span class="material-symbols-outlined large-icon">school</span>
+      <h2>Chưa chọn lớp học</h2>
+      <p>Vui lòng tạo hoặc chọn một lớp học trong kỳ học hiện tại để thực hiện điểm danh.</p>
+    </div>
+  }
+</div>

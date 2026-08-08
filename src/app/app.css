@@ -1,0 +1,101 @@
+.logo-container {
+  min-width: 0;
+}
+
+.logo-image {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.logo-text {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar.collapsed .logo-image {
+  width: 32px;
+  height: 32px;
+}
+
+.brand-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.brand-input {
+  height: 36px;
+  font-size: 0.85rem;
+}
+
+.brand-icon-options {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.brand-icon-btn {
+  height: 36px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-icon-btn:hover,
+.brand-icon-btn.active {
+  color: #ffffff;
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.16);
+}
+
+.brand-icon-btn .material-symbols-outlined {
+  font-size: 1.25rem;
+}
+
+.brand-upload-btn,
+.brand-clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.brand-upload-btn {
+  border: 1px dashed var(--border-color);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+}
+
+.brand-upload-btn:hover {
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.12);
+}
+
+.brand-upload-btn input {
+  display: none;
+}
+
+.brand-upload-btn .material-symbols-outlined,
+.brand-clear-btn .material-symbols-outlined {
+  font-size: 1.1rem;
+}

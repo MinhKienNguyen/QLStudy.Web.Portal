@@ -1,0 +1,74 @@
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-header">
+      <div class="logo-circle">
+        <span class="logo-text">QL</span>
+      </div>
+      <h2>QLStudy</h2>
+      <p class="subtitle">
+        {{ mode() === 'login' ? 'Hệ thống Quản lý Đào tạo & Thu học phí' : 'Khôi phục mật khẩu tài khoản' }}
+      </p>
+    </div>
+
+    <!-- Alert Messages -->
+    <div class="alert alert-danger" *ngIf="errorMessage()">
+      <i class="icon-warning"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+
+    <div class="alert alert-success" *ngIf="successMessage()">
+      <i class="icon-check"></i>
+      <span>{{ successMessage() }}</span>
+    </div>
+
+    <form (submit)="onSubmit($event)" class="login-form">
+      <div class="form-group">
+        <label for="email">Email</label>
+        <div class="input-with-icon">
+          <span class="icon-mail">✉</span>
+          <input
+            type="email"
+            id="email"
+            name="email"
+            [(ngModel)]="email"
+            placeholder="nhanvien@qlstudy.com"
+            required
+            [disabled]="isLoading()"
+          />
+        </div>
+      </div>
+
+      <div class="form-group" *ngIf="mode() === 'login'">
+        <div class="label-wrapper">
+          <label for="password">Mật khẩu</label>
+          <a href="javascript:void(0)" (click)="setMode('forgot')" class="forgot-link">Quên mật khẩu?</a>
+        </div>
+        <div class="input-with-icon">
+          <span class="icon-lock">🔒</span>
+          <input
+            type="password"
+            id="password"
+            name="password"
+            [(ngModel)]="password"
+            placeholder="••••••••"
+            required
+            [disabled]="isLoading()"
+          />
+        </div>
+      </div>
+
+      <button type="submit" class="submit-btn" [disabled]="isLoading()">
+        <span *ngIf="!isLoading()">
+          {{ mode() === 'login' ? 'Đăng Nhập' : 'Gửi Yêu Cầu Khôi Phục' }}
+        </span>
+        <span *ngIf="isLoading()" class="spinner"></span>
+      </button>
+
+      <div class="form-footer">
+        <a href="javascript:void(0)" *ngIf="mode() === 'forgot'" (click)="setMode('login')" class="back-link">
+          ← Quay lại Đăng nhập
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
