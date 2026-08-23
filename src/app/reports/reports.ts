@@ -861,7 +861,8 @@ export class ReportsComponent implements OnInit {
       return;
     }
 
-    const rowsInRange = this.tuitionRows().filter(row => {
+    const activeRows = this.tuitionRows().filter(row => row.enrollmentStatus === 'Active');
+    const rowsInRange = activeRows.filter(row => {
       const candidatePeriodIds = row.payablePeriodIds || [];
       if (candidatePeriodIds.length) {
         return candidatePeriodIds.some(periodId => selectedPeriodIds.has(Number(periodId)));
