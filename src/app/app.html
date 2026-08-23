@@ -1,7 +1,7 @@
 <ng-container *ngIf="authService.isLoggedIn(); else loginLayout">
-  <div class="app-container" [class.sidebar-collapsed]="isSidebarCollapsed()">
+  <div class="app-container" [class.sidebar-collapsed]="isSidebarCollapsed()" [ngClass]="getRoleClass()">
     <!-- Sidebar Navigation -->
-    <aside class="sidebar" [class.collapsed]="isSidebarCollapsed()">
+    <aside class="sidebar" [class.collapsed]="isSidebarCollapsed()" *ngIf="!isParentOrStudent()">
       <div class="logo-container">
         @if (centerLogoImage()) {
           <img class="logo-image" [src]="centerLogoImage()" [alt]="centerName() + ' logo'">
@@ -58,6 +58,14 @@
           <span class="material-symbols-outlined">manage_accounts</span>
           <span>Tài khoản</span>
         </a>
+        <a class="nav-link" routerLink="/announcements" routerLinkActive="active" *ngIf="authService.hasPermission('announcements')">
+          <span class="material-symbols-outlined">campaign</span>
+          <span>Thông báo</span>
+        </a>
+        <a class="nav-link" routerLink="/payment-config" routerLinkActive="active" *ngIf="authService.hasPermission('payment-config')">
+          <span class="material-symbols-outlined">qr_code_2</span>
+          <span>Cấu hình thanh toán</span>
+        </a>
       </nav>
 
       <!-- Sidebar Footer with User Info, Logout & Version -->
@@ -98,8 +106,18 @@
         </div>
         
         <div class="top-bar-actions" style="display: flex; align-items: center; gap: 0.75rem;">
+          <!-- Student (Child) Selector for Parent -->
+          <div class="student-selector-top" *ngIf="authService.currentUser()?.role === 'Parent' && authService.currentUser()?.associatedStudents?.length" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.15); padding: 0.25rem 0.5rem 0.25rem 0.75rem; border-radius: 12px; height: 38px;">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem; color: #fff;">child_care</span>
+            <select class="student-select-top" [value]="apiService.selectedStudentId()" (change)="onStudentChange($event)" style="background: none; border: none; color: #fff; font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer; padding-right: 1.5rem; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right center; background-size: 8px auto;">
+              @for (child of authService.currentUser()?.associatedStudents; track child.id) {
+                <option [value]="child.id" style="background: #1f2937; color: #fff;">{{ child.name }}</option>
+              }
+            </select>
+          </div>
+
           <!-- Semester Selector (Moved to top-bar right) -->
-          <div class="semester-selector-top" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(31, 41, 55, 0.5); border: 1px solid var(--border-color); padding: 0.25rem 0.5rem 0.25rem 0.75rem; border-radius: 12px;">
+          <div class="semester-selector-top" *ngIf="!isParentOrStudent()" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(31, 41, 55, 0.5); border: 1px solid var(--border-color); padding: 0.25rem 0.5rem 0.25rem 0.75rem; border-radius: 12px;">
             <span class="material-symbols-outlined" style="font-size: 1.15rem; color: var(--text-secondary);">calendar_month</span>
             <select class="semester-select-top" [value]="apiService.selectedSemesterId()" (change)="onSemesterChange($event)" style="background: none; border: none; color: #fff; font-size: 0.85rem; font-weight: 600; outline: none; cursor: pointer; padding-right: 1.5rem; -webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23ffffff%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E'); background-repeat: no-repeat; background-position: right center; background-size: 8px auto;">
               @for (sem of semesters(); track sem.id) {
@@ -109,7 +127,7 @@
           </div>
 
           <!-- Theme Settings Dropdown -->
-          <div class="settings-dropdown-wrapper">
+          <div class="settings-dropdown-wrapper" *ngIf="!isParentOrStudent()">
             <button class="btn btn-secondary" (click)="toggleSettingsDropdown(); $event.stopPropagation();" title="Cấu hình giao diện" style="padding: 0.5rem 0.75rem; border-radius: 12px;">
               <span class="material-symbols-outlined" style="font-size: 1.25rem;">palette</span>
               <span>Giao diện</span>
@@ -171,11 +189,57 @@
                       Dùng biểu tượng
                     </button>
                   }
+
+                  <hr style="border: none; border-top: 1px solid rgba(255, 255, 255, 0.08); margin: 0.75rem 0 0.5rem 0;">
+                  <span class="theme-label" style="font-weight: 700; color: #a5b4fc; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 0.5rem;">Cổng thanh toán</span>
+
+                  <span class="theme-label">Tên ngân hàng</span>
+                  <input class="form-control brand-input"
+                         type="text"
+                         [ngModel]="bankName()"
+                         (ngModelChange)="updateBankName($event)"
+                         placeholder="Ví dụ: BIDV, Vietcombank...">
+
+                  <span class="theme-label">Số tài khoản</span>
+                  <input class="form-control brand-input"
+                         type="text"
+                         [ngModel]="bankAccountNumber()"
+                         (ngModelChange)="updateBankAccountNumber($event)"
+                         placeholder="Ví dụ: 21510008889999">
+
+                  <span class="theme-label">Tên chủ tài khoản</span>
+                  <input class="form-control brand-input"
+                         type="text"
+                         [ngModel]="bankAccountName()"
+                         (ngModelChange)="updateBankAccountName($event)"
+                         placeholder="Ví dụ: TRUNG TAM QLSTUDY">
+
+                  <span class="theme-label">Ảnh QR chuyển khoản</span>
+                  <label class="brand-upload-btn" style="margin-top: 0.25rem;">
+                    <span class="material-symbols-outlined">qr_code_2</span>
+                    {{ paymentQrCode() ? 'Đổi ảnh QR Code' : 'Tải mã QR tĩnh' }}
+                    <input type="file" accept="image/*" (change)="onPaymentQrFileSelected($event)">
+                  </label>
+                  
+                  @if (paymentQrCode()) {
+                    <button class="btn btn-secondary brand-clear-btn" (click)="clearPaymentQrCode()" style="margin-top: 0.25rem; font-size: 0.75rem; border-color: rgba(239,68,68,0.2); color: #fca5a5; width: 100%;">
+                      Xóa QR tĩnh (Dùng VietQR động)
+                    </button>
+                  }
+
+                  <button class="btn btn-primary" (click)="savePaymentSettings()" style="width: 100%; margin-top: 0.75rem; padding: 0.5rem; font-size: 0.8rem; font-weight: 700; border-radius: 8px;">
+                    Lưu cấu hình
+                  </button>
                 </div>
               </div>
             }
           </div>
 
+          <!-- Logout Button for Student/Parent -->
+          <button class="btn btn-secondary" *ngIf="isParentOrStudent()" (click)="authService.logout()" title="Đăng xuất" style="padding: 0.5rem 0.75rem; border-radius: 12px; background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.2); color: #f87171;">
+            <span class="material-symbols-outlined" style="font-size: 1.15rem; color: #f87171;">logout</span>
+            <span>Đăng xuất</span>
+          </button>
         </div>
       </header>
 
@@ -183,6 +247,26 @@
       <main class="main-content">
         <router-outlet></router-outlet>
       </main>
+
+      <!-- Mobile Bottom Navigation Bar for Student/Parent -->
+      <nav class="mobile-bottom-nav" *ngIf="isParentOrStudent()">
+        <a class="mobile-nav-link" routerLink="/dashboard" routerLinkActive="active">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span>Trang chủ</span>
+        </a>
+        <a class="mobile-nav-link" routerLink="/schedule" routerLinkActive="active">
+          <span class="material-symbols-outlined">calendar_today</span>
+          <span>Lịch học</span>
+        </a>
+        <a class="mobile-nav-link" routerLink="/tuition" routerLinkActive="active">
+          <span class="material-symbols-outlined">payments</span>
+          <span>Học phí</span>
+        </a>
+        <a class="mobile-nav-link" routerLink="/attendance" routerLinkActive="active">
+          <span class="material-symbols-outlined">fact_check</span>
+          <span>Điểm danh</span>
+        </a>
+      </nav>
     </div>
   </div>
 </ng-container>

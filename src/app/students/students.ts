@@ -45,6 +45,16 @@ import { ApiService, Student, Class, RewardOption, StudentScore } from '../api.s
               }
             </select>
           </div>
+
+          <!-- Status filter -->
+          <div class="form-group select-group">
+            <select class="form-control" [(ngModel)]="selectedStatus" (ngModelChange)="applyFilters()">
+              <option value="All">Tất cả trạng thái</option>
+              <option value="Active">Đang học</option>
+              <option value="Paused">Tạm nghỉ</option>
+              <option value="Stopped">Nghỉ hẳn</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -58,6 +68,7 @@ import { ApiService, Student, Class, RewardOption, StudentScore } from '../api.s
               <th style="text-align: left; width: 140px;">Điện thoại</th>
               <th style="text-align: left; width: 180px;">Email</th>
               <th style="text-align: left;">Lớp đang học</th>
+              <th style="text-align: center; width: 120px;">Trạng thái</th>
               <th style="text-align: left; width: 160px;">Khen thưởng</th>
               <th style="width: 110px; text-align: center;">Điểm</th>
               <th style="width: 140px; text-align: center;">Hành động</th>
@@ -78,6 +89,19 @@ import { ApiService, Student, Class, RewardOption, StudentScore } from '../api.s
                       <span style="color: var(--text-muted); font-size: 0.8rem; font-style: italic;">Chưa phân lớp</span>
                     }
                   </div>
+                </td>
+                <td style="text-align: center;">
+                  @switch (getStudentStatus(s)) {
+                    @case ('Active') {
+                      <span class="badge badge-success">Đang học</span>
+                    }
+                    @case ('Paused') {
+                      <span class="badge badge-warning">Tạm nghỉ</span>
+                    }
+                    @case ('Stopped') {
+                      <span class="badge badge-danger">Nghỉ hẳn</span>
+                    }
+                  }
                 </td>
                 <td>
                   <div class="rewards-badges-row">
@@ -105,7 +129,7 @@ import { ApiService, Student, Class, RewardOption, StudentScore } from '../api.s
               </tr>
             } @empty {
               <tr>
-                <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">
+                <td colspan="9" style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">
                   Chưa có học sinh nào phù hợp.
                 </td>
               </tr>
@@ -929,6 +953,7 @@ export class StudentsComponent implements OnInit {
   // Filters
   public searchQuery = '';
   public selectedClassId = 0;
+  public selectedStatus = 'Active';
 
   // Student Form State
   public studentForm = {
@@ -985,6 +1010,20 @@ export class StudentsComponent implements OnInit {
     });
   }
 
+  getStudentStatus(student: Student): string {
+    if (!student.classStatuses || Object.keys(student.classStatuses).length === 0) {
+      return 'Stopped';
+    }
+    const statuses = Object.values(student.classStatuses);
+    if (statuses.includes('Active')) {
+      return 'Active';
+    }
+    if (statuses.includes('Paused')) {
+      return 'Paused';
+    }
+    return 'Stopped';
+  }
+
   applyFilters() {
     let list = this.students();
 
@@ -1001,6 +1040,11 @@ export class StudentsComponent implements OnInit {
     const selectedClassId = Number(this.selectedClassId);
     if (selectedClassId > 0) {
       list = list.filter(s => s.classIds && s.classIds.map(Number).includes(selectedClassId));
+    }
+
+    // Filter by Student Status
+    if (this.selectedStatus && this.selectedStatus !== 'All') {
+      list = list.filter(s => this.getStudentStatus(s) === this.selectedStatus);
     }
 
     this.filteredStudents.set(list);

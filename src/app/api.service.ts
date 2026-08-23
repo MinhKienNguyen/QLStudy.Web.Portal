@@ -99,6 +99,7 @@ export interface StudentTuitionRow {
   amountDueByPeriod?: { [periodId: string]: number };
   adjustments?: { [periodId: string]: TuitionAdjustmentInfo };
   payments: { [periodId: string]: PaymentInfo };
+  enrollmentStatus?: string;
 }
 
 export interface TuitionMatrix {
@@ -151,6 +152,7 @@ export interface StudentScore {
 export class ApiService {
   public selectedSemesterId = signal<number | null>(null);
   public activeSemesterName = signal<string>('');
+  public selectedStudentId = signal<number | null>(null);
 
   private apiUrl = '/api';
 
@@ -392,6 +394,38 @@ export class ApiService {
 
   updatePermissions(permissions: any[]): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/users/permissions`, permissions);
+  }
+
+  getStudentDashboardData(studentId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/students/${studentId}/dashboard-data`);
+  }
+
+  getAnnouncements(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/announcements`);
+  }
+
+  createAnnouncement(announcement: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/announcements`, announcement);
+  }
+
+  updateAnnouncement(id: number, announcement: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/announcements/${id}`, announcement);
+  }
+
+  deleteAnnouncement(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/announcements/${id}`);
+  }
+
+  getPaymentSettings(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/centers/payment-settings`);
+  }
+
+  savePaymentSettings(settings: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/centers/payment-settings`, settings);
+  }
+
+  createPayOSPaymentLink(payload: { studentId: number, classId?: number, periodId: number, amount: number }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/payos/create-payment-link`, payload);
   }
 }
 

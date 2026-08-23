@@ -283,7 +283,7 @@ export interface ClassGroup {
     }
     .filters-row {
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       gap: 1.25rem;
       flex-wrap: wrap;
     }

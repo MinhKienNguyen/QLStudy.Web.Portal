@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../api.service';
@@ -8,10 +8,14 @@ interface UserAccount {
   fullName: string;
   email: string;
   phoneNumber: string;
-  role: 'Manager' | 'Teacher';
+  role: 'Manager' | 'Teacher' | 'Parent' | 'Student';
   status: 'Active' | 'Locked';
   subjectIds: number[];
   subjects: string[];
+  studentId?: number | null;
+  studentName?: string | null;
+  associatedStudentIds?: number[];
+  associatedStudentNames?: string[];
 }
 
 interface ScreenPermission {
@@ -71,8 +75,38 @@ interface Subject {
 
       <!-- Tab Content: Users Management -->
       <div *ngIf="activeTab() === 'users'">
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 1rem;">
-          <button class="btn btn-primary" (click)="openAddUserModal()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; gap: 1rem; flex-wrap: wrap;">
+          <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+            <!-- Role Filter -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Vai trò:</span>
+              <select class="form-control" [value]="roleFilter()" (change)="onRoleFilterChange($event)" style="width: 140px; height: 38px; font-size: 0.85rem; background-color: var(--bg-solid); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; padding: 0.375rem 0.75rem; outline: none; cursor: pointer;">
+                <option value="all">Tất cả</option>
+                <option value="Manager">Quản lý</option>
+                <option value="Teacher">Giáo viên</option>
+                <option value="Parent">Phụ huynh</option>
+                <option value="Student">Học sinh</option>
+              </select>
+            </div>
+
+            <!-- Status Filter -->
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="color: var(--text-secondary); font-size: 0.85rem; font-weight: 500;">Trạng thái:</span>
+              <select class="form-control" [value]="statusFilter()" (change)="onStatusFilterChange($event)" style="width: 150px; height: 38px; font-size: 0.85rem; background-color: var(--bg-solid); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; padding: 0.375rem 0.75rem; outline: none; cursor: pointer;">
+                <option value="all">Tất cả</option>
+                <option value="Active">Đang hoạt động</option>
+                <option value="Locked">Đã khóa</option>
+              </select>
+            </div>
+
+            <!-- Text Search Filter -->
+            <div style="display: flex; align-items: center; gap: 0.5rem; position: relative;">
+              <span class="material-symbols-outlined" style="position: absolute; left: 12px; color: var(--text-muted); font-size: 1.15rem; pointer-events: none; top: 50%; transform: translateY(-50%);">search</span>
+              <input type="text" class="form-control" [value]="searchQuery()" (input)="onSearchQueryInput($event)" placeholder="Tìm kiếm tên, email..." style="width: 240px; height: 38px; font-size: 0.85rem; padding-left: 2.25rem; background-color: var(--bg-solid); border: 1px solid var(--border-color); border-radius: 8px; color: #fff; outline: none;">
+            </div>
+          </div>
+
+          <button class="btn btn-primary" (click)="openAddUserModal()" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.625rem 1.25rem; height: 38px;">
             <span class="material-symbols-outlined">add</span>
             <span>Tạo Tài Khoản</span>
           </button>
@@ -92,19 +126,41 @@ interface Subject {
               </tr>
             </thead>
             <tbody>
-              @for (u of users(); track u.id) {
+              @for (u of filteredUsers(); track u.id) {
                 <tr style="border-bottom: 1px solid var(--border-color); transition: background-color 0.2s;">
                   <td style="font-weight: 600; color: #fff; padding: 1rem;">{{ u.fullName }}</td>
                   <td style="color: #d1d5db; padding: 1rem;">{{ u.email }}</td>
                   <td style="color: var(--text-muted); padding: 1rem;">{{ u.phoneNumber || 'N/A' }}</td>
                   <td style="text-align: center; padding: 1rem;">
-                    <span [class]="u.role === 'Manager' ? 'badge badge-primary' : 'badge badge-info'" style="padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
-                      {{ u.role === 'Manager' ? 'Quản lý' : 'Giáo viên' }}
+                    <span [class]="u.role === 'Manager' ? 'badge badge-primary' : (u.role === 'Teacher' ? 'badge badge-info' : (u.role === 'Student' ? 'badge badge-success' : 'badge badge-warning'))" style="padding: 0.25rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase;">
+                      {{ u.role === 'Manager' ? 'Quản lý' : (u.role === 'Teacher' ? 'Giáo viên' : (u.role === 'Student' ? 'Học sinh' : 'Phụ huynh')) }}
                     </span>
                   </td>
                   <td style="padding: 1rem;">
                     @if (u.role === 'Manager') {
                       <span style="color: #34d399; font-size: 0.85rem; font-weight: 600;">Xem toàn bộ trung tâm</span>
+                    } @else if (u.role === 'Student') {
+                      <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem; margin-right: 0.25rem;">Liên kết học sinh:</span>
+                        @for (studentName of u.associatedStudentNames; track studentName) {
+                          <span style="background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); color: #86efac; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem;">
+                            {{ studentName }}
+                          </span>
+                        } @empty {
+                          <span style="color: #f87171; font-size: 0.85rem; font-style: italic;">Chưa liên kết</span>
+                        }
+                      </div>
+                    } @else if (u.role === 'Parent') {
+                      <div style="display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem; margin-right: 0.25rem;">Liên kết con:</span>
+                        @for (child of u.associatedStudentNames; track child) {
+                          <span style="background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); color: #fcd34d; padding: 0.15rem 0.4rem; border-radius: 4px; font-size: 0.75rem;">
+                            {{ child }}
+                          </span>
+                        } @empty {
+                          <span style="color: #f87171; font-size: 0.85rem; font-style: italic;">Chưa liên kết</span>
+                        }
+                      </div>
                     } @else {
                       <div style="display: flex; flex-wrap: wrap; gap: 0.25rem;">
                         @for (sub of u.subjects; track sub) {
@@ -184,14 +240,14 @@ interface Subject {
       </div>
 
       <!-- Account Edit/Create Modal -->
-      <div class="modal-backdrop" *ngIf="showUserModal()">
-        <div class="modal-container" style="max-width: 550px; background: #121824; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; padding: 2rem; box-shadow: 0 20px 40px rgba(0,0,0,0.5); max-height: 90vh; overflow-y: auto;">
-          <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
-            <h3 style="color: #fff; margin: 0; font-size: 1.25rem; font-weight: 700;">{{ userModalMode() === 'add' ? 'Tạo Tài Khoản Mới' : 'Cập Nhật Tài Khoản' }}</h3>
-            <button class="close-btn" (click)="closeUserModal()" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.2rem;">&times;</button>
+      <div class="modal-overlay" *ngIf="showUserModal()">
+        <div class="modal-container" style="max-width: 600px; width: 600px; max-height: 90vh; display: flex; flex-direction: column;">
+          <div class="modal-header">
+            <h3 style="margin: 0; color: #fff;">{{ userModalMode() === 'add' ? 'Tạo Tài Khoản Mới' : 'Cập Nhật Tài Khoản' }}</h3>
+            <button class="close-btn" (click)="closeUserModal()">&times;</button>
           </div>
-
-          <form (submit)="saveUser($event)">
+          <form (submit)="saveUser($event)" style="display: flex; flex-direction: column; overflow: hidden; height: 100%; margin: 0;">
+            <div class="modal-body" style="overflow-y: auto; flex-grow: 1; padding: 1.5rem;">
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
               <div class="form-group">
                 <label style="display: block; margin-bottom: 0.5rem; color: #d1d5db; font-size: 0.85rem;">Họ và tên *</label>
@@ -224,6 +280,8 @@ interface Subject {
                 <select name="role" [(ngModel)]="userForm.role" style="width: 100%; padding: 0.65rem 0.85rem; border-radius: 10px; border: 1px solid var(--border-color); background: rgba(31, 41, 55, 0.5); color: #fff; font-size: 0.9rem;">
                   <option value="Teacher">Giáo viên</option>
                   <option value="Manager">Trưởng bộ phận (Quản lý)</option>
+                  <option value="Student">Học sinh</option>
+                  <option value="Parent">Phụ huynh</option>
                 </select>
               </div>
 
@@ -254,7 +312,74 @@ interface Subject {
               </div>
             </div>
 
-            <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1rem; margin-top: 2rem;">
+            <!-- Link Students option for Student & Parent accounts (Multiple students/children) -->
+            <div *ngIf="userForm.role === 'Student' || userForm.role === 'Parent'" style="background: rgba(255,255,255,0.02); border: 1px solid var(--border-color); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem;">
+              <h4 style="color: #fff; margin: 0 0 0.75rem; font-size: 0.9rem; font-weight: 600;">
+                {{ userForm.role === 'Student' ? 'Liên kết với hồ sơ học sinh (chọn nhiều)' : 'Liên kết với con cái (chọn nhiều)' }}
+              </h4>
+              
+              <!-- Filter Controls (Class Dropdown & Name Search Input) -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 1rem;">
+                <div>
+                  <label style="display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">Lọc theo lớp học</label>
+                  <select name="selectedClassFilterId"
+                          [ngModel]="selectedClassFilterId()" 
+                          (ngModelChange)="selectedClassFilterId.set($event)"
+                          style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(31, 41, 55, 0.7); color: #fff; font-size: 0.85rem;">
+                    <option [ngValue]="null">-- Tất cả các lớp --</option>
+                    @for (cls of classesList(); track cls.id) {
+                      <option [value]="cls.id">{{ cls.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label style="display: block; margin-bottom: 0.35rem; color: var(--text-muted); font-size: 0.75rem;">Tìm kiếm theo tên</label>
+                  <input type="text" 
+                         name="studentSearchQuery"
+                         placeholder="Nhập tên để lọc nhanh..." 
+                         [ngModel]="studentSearchQuery()" 
+                         (ngModelChange)="studentSearchQuery.set($event)"
+                         style="width: 100%; padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid var(--border-color); background: rgba(31, 41, 55, 0.7); color: #fff; font-size: 0.85rem;" />
+                </div>
+              </div>
+
+              <!-- Student Checklist -->
+              <div style="background: rgba(0,0,0,0.15); border: 1px solid rgba(255,255,255,0.05); border-radius: 8px; padding: 0.75rem; max-height: 180px; overflow-y: auto;">
+                <div *ngIf="filteredStudents().length === 0" style="padding: 1rem; color: var(--text-muted); font-size: 0.85rem; font-style: italic; text-align: center;">
+                  Không tìm thấy học sinh nào phù hợp bộ lọc
+                </div>
+                
+                <div style="display: grid; grid-template-columns: 1fr; gap: 0.5rem;">
+                  @for (student of filteredStudents(); track student.id) {
+                    <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; border-radius: 6px; background: rgba(255,255,255,0.01); border: 1px solid transparent; cursor: pointer; transition: all 0.15s;"
+                           [style.border-color]="userForm.associatedStudentIds.includes(student.id) ? 'rgba(99, 102, 241, 0.3)' : 'transparent'"
+                           [style.background]="userForm.associatedStudentIds.includes(student.id) ? 'rgba(99, 102, 241, 0.05)' : 'rgba(255,255,255,0.01)'">
+                      <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input
+                          type="checkbox"
+                          [checked]="userForm.associatedStudentIds.includes(student.id)"
+                          (change)="toggleUserFormAssociatedStudent(student.id)"
+                          style="width: 16px; height: 16px; cursor: pointer; accent-color: var(--primary-color, #6366f1);"
+                        />
+                        <span style="color: #fff; font-size: 0.875rem; font-weight: 500;">{{ student.name }}</span>
+                      </div>
+                      <span style="font-size: 0.75rem; color: var(--text-muted); background: rgba(255,255,255,0.05); padding: 0.15rem 0.4rem; border-radius: 4px;">
+                        Lớp: {{ student.classNames?.join(', ') || 'Chưa gán' }}
+                      </span>
+                    </label>
+                  }
+                </div>
+              </div>
+
+              <!-- Selected status label -->
+              <div *ngIf="userForm.associatedStudentIds.length > 0" style="margin-top: 0.75rem; font-size: 0.8rem; color: #a5b4fc;">
+                Đã chọn {{ userForm.associatedStudentIds.length }} học sinh: 
+                <strong>{{ getSelectedStudentNamesDisplay() }}</strong>
+              </div>
+            </div>
+
+            </div>
+            <div class="modal-footer">
               <button type="button" class="btn btn-secondary" (click)="closeUserModal()">Hủy</button>
               <button type="submit" class="btn btn-primary">Lưu</button>
             </div>
@@ -269,6 +394,42 @@ export class AccountsComponent implements OnInit {
 
   public activeTab = signal<'users' | 'permissions'>('users');
   public users = signal<UserAccount[]>([]);
+  public roleFilter = signal<string>('all');
+  public statusFilter = signal<string>('all');
+  public searchQuery = signal<string>('');
+
+  public filteredUsers = computed(() => {
+    const allUsers = this.users();
+    const role = this.roleFilter();
+    const status = this.statusFilter();
+    const query = this.searchQuery().trim().toLowerCase();
+
+    return allUsers.filter(u => {
+      const matchesRole = role === 'all' || u.role === role;
+      const matchesStatus = status === 'all' || u.status === status;
+      const matchesQuery = !query || 
+        (u.fullName || '').toLowerCase().includes(query) || 
+        (u.email || '').toLowerCase().includes(query) || 
+        (u.phoneNumber || '').includes(query);
+
+      return matchesRole && matchesStatus && matchesQuery;
+    });
+  });
+
+  onRoleFilterChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    this.roleFilter.set(select.value);
+  }
+
+  onStatusFilterChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    this.statusFilter.set(select.value);
+  }
+
+  onSearchQueryInput(event: Event) {
+    const input = event.target as HTMLInputElement;
+    this.searchQuery.set(input.value);
+  }
   public subjects = signal<Subject[]>([]);
   public permissions = signal<ScreenPermission[]>([]);
 
@@ -280,10 +441,17 @@ export class AccountsComponent implements OnInit {
     email: '',
     phoneNumber: '',
     password: '',
-    role: 'Teacher' as 'Manager' | 'Teacher',
+    role: 'Teacher' as 'Manager' | 'Teacher' | 'Parent' | 'Student',
     status: 'Active' as 'Active' | 'Locked',
-    subjectIds: [] as number[]
+    subjectIds: [] as number[],
+    studentId: null as number | null,
+    associatedStudentIds: [] as number[]
   };
+
+  public studentSearchQuery = signal<string>('');
+  public selectedClassFilterId = signal<number | null>(null);
+  public showDropdownList = signal<boolean>(false);
+  public selectedStudentNameDisplay = signal<string>('');
 
   public errorMessage = signal<string>('');
   public successMessage = signal<string>('');
@@ -292,10 +460,61 @@ export class AccountsComponent implements OnInit {
     'dashboard', 'schedule', 'tuition', 'students', 'classes', 'attendance', 'penalties', 'reports', 'subjects', 'accounts'
   ];
 
+  public studentsList = signal<any[]>([]);
+  public classesList = signal<any[]>([]);
+
   ngOnInit() {
     this.loadUsers();
     this.loadSubjects();
     this.loadPermissions();
+    this.loadStudentsList();
+    this.loadClassesList();
+  }
+
+  loadStudentsList() {
+    this.apiService.getStudents().subscribe({
+      next: (data) => this.studentsList.set(data),
+      error: (err) => console.error(err)
+    });
+  }
+
+  loadClassesList() {
+    this.apiService.getClasses().subscribe({
+      next: (data) => this.classesList.set(data),
+      error: (err) => console.error(err)
+    });
+  }
+
+  filteredStudents() {
+    let list = this.studentsList();
+    const classId = this.selectedClassFilterId();
+    if (classId) {
+      list = list.filter(s => s.classIds?.includes(Number(classId)));
+    }
+    const query = this.studentSearchQuery().toLowerCase().trim();
+    if (query) {
+      list = list.filter(s => s.name.toLowerCase().includes(query));
+    }
+    return list;
+  }
+
+  getSelectedStudentNamesDisplay(): string {
+    return this.userForm.associatedStudentIds
+      .map(id => this.studentsList().find(s => s.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
+  }
+
+  selectStudent(student: any) {
+    this.userForm.studentId = student.id;
+    this.selectedStudentNameDisplay.set(student.name);
+    this.studentSearchQuery.set(student.name);
+  }
+
+  clearSelectedStudent() {
+    this.userForm.studentId = null;
+    this.selectedStudentNameDisplay.set('');
+    this.studentSearchQuery.set('');
   }
 
   loadUsers() {
@@ -379,8 +598,14 @@ export class AccountsComponent implements OnInit {
       password: '',
       role: 'Teacher',
       status: 'Active',
-      subjectIds: []
+      subjectIds: [],
+      studentId: null,
+      associatedStudentIds: []
     };
+    this.selectedClassFilterId.set(null);
+    this.studentSearchQuery.set('');
+    this.selectedStudentNameDisplay.set('');
+    this.showDropdownList.set(false);
     this.showUserModal.set(true);
   }
 
@@ -396,9 +621,24 @@ export class AccountsComponent implements OnInit {
       password: '',
       role: user.role,
       status: user.status,
-      subjectIds: [...user.subjectIds]
+      subjectIds: [...(user.subjectIds || [])],
+      studentId: user.studentId || null,
+      associatedStudentIds: [...(user.associatedStudentIds || [])]
     };
+    this.selectedClassFilterId.set(null);
+    this.studentSearchQuery.set('');
+    this.selectedStudentNameDisplay.set(user.studentName || '');
+    this.showDropdownList.set(false);
     this.showUserModal.set(true);
+  }
+
+  toggleUserFormAssociatedStudent(studentId: number) {
+    const list = this.userForm.associatedStudentIds;
+    if (list.includes(studentId)) {
+      this.userForm.associatedStudentIds = list.filter(id => id !== studentId);
+    } else {
+      this.userForm.associatedStudentIds = [...list, studentId];
+    }
   }
 
   closeUserModal() {
@@ -429,7 +669,11 @@ export class AccountsComponent implements OnInit {
       password: this.userForm.password || null,
       role: this.userForm.role,
       status: this.userForm.status,
-      subjectIds: this.userForm.role === 'Teacher' ? this.userForm.subjectIds : []
+      subjectIds: this.userForm.role === 'Teacher' ? this.userForm.subjectIds : [],
+      studentId: null,
+      associatedStudentIds: (this.userForm.role === 'Student' || this.userForm.role === 'Parent') 
+        ? this.userForm.associatedStudentIds 
+        : []
     };
 
     const request = this.userModalMode() === 'add'

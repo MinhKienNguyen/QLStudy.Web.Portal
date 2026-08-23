@@ -10,6 +10,8 @@ import { PenaltiesComponent } from './penalties/penalties';
 import { LoginComponent } from './login/login';
 import { SubjectsComponent } from './subjects/subjects';
 import { AccountsComponent } from './accounts/accounts';
+import { AnnouncementsComponent } from './announcements/announcements';
+import { PaymentConfigComponent } from './payment-config/payment-config';
 import { authGuard, guestGuard } from './auth.guard';
 
 export const routes: Routes = [
@@ -28,7 +30,9 @@ export const routes: Routes = [
       { path: 'attendance', component: AttendanceComponent },
       { path: 'penalties', component: PenaltiesComponent },
       { path: 'subjects', component: SubjectsComponent, data: { permission: 'subjects' } },
-      { path: 'accounts', component: AccountsComponent, data: { permission: 'accounts' } }
+      { path: 'accounts', component: AccountsComponent, data: { permission: 'accounts' } },
+      { path: 'announcements', component: AnnouncementsComponent },
+      { path: 'payment-config', component: PaymentConfigComponent }
     ]
   },
   { path: '**', redirectTo: 'dashboard' }

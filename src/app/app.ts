@@ -31,6 +31,10 @@ export class App implements OnInit {
   public centerLogoIcon = signal<string>('auto_stories');
   public centerLogoImage = signal<string>('');
   public logoIconOptions = ['auto_stories', 'school', 'menu_book', 'local_library', 'workspace_premium', 'psychology', 'calculate', 'emoji_events'];
+  public bankName = signal<string>('');
+  public bankAccountNumber = signal<string>('');
+  public bankAccountName = signal<string>('');
+  public paymentQrCode = signal<string>('');
 
   constructor(public apiService: ApiService) {
     // When the selected semester changes, update the name of the active semester
@@ -43,10 +47,23 @@ export class App implements OnInit {
       }
     }, { allowSignalWrites: true });
 
-    // When the user logs in, load semesters
+    // When the user logs in, load semesters and initialize student selection
     effect(() => {
       if (this.authService.isLoggedIn()) {
         this.loadSemesters();
+        this.loadPaymentSettings();
+        const user = this.authService.currentUser();
+        if (user) {
+          if (user.role === 'Student') {
+            this.apiService.selectedStudentId.set(user.studentId || null);
+          } else if (user.role === 'Parent' && user.associatedStudents && user.associatedStudents.length > 0) {
+            this.apiService.selectedStudentId.set(user.associatedStudents[0].id);
+          } else {
+            this.apiService.selectedStudentId.set(null);
+          }
+        }
+      } else {
+        this.apiService.selectedStudentId.set(null);
       }
     }, { allowSignalWrites: true });
   }
@@ -54,6 +71,7 @@ export class App implements OnInit {
   ngOnInit() {
     if (this.authService.isLoggedIn()) {
       this.loadSemesters();
+      this.loadPaymentSettings();
     }
     const savedTheme = localStorage.getItem('theme') || 'indigo';
     this.changeTheme(savedTheme);
@@ -64,6 +82,20 @@ export class App implements OnInit {
     this.centerName.set(localStorage.getItem('center-name') || 'QLStudy');
     this.centerLogoIcon.set(localStorage.getItem('center-logo-icon') || 'auto_stories');
     this.centerLogoImage.set(localStorage.getItem('center-logo-image') || '');
+  }
+
+  getRoleClass(): string {
+    const role = this.authService.currentUser()?.role;
+    if (role === 'Manager') return 'role-admin';
+    if (role === 'Teacher') return 'role-teacher';
+    if (role === 'Parent') return 'role-parent';
+    if (role === 'Student') return 'role-student';
+    return '';
+  }
+
+  isParentOrStudent(): boolean {
+    const role = this.authService.currentUser()?.role;
+    return role === 'Parent' || role === 'Student';
   }
 
   changeTheme(themeName: string) {
@@ -163,6 +195,14 @@ export class App implements OnInit {
     this.showToast(`Đã chuyển sang: ${this.apiService.activeSemesterName()}`, 'success');
   }
 
+  onStudentChange(event: Event) {
+    const select = event.target as HTMLSelectElement;
+    const value = parseInt(select.value, 10);
+    this.apiService.selectedStudentId.set(value || null);
+    const studentName = this.authService.currentUser()?.associatedStudents?.find(s => s.id === value)?.name || '';
+    this.showToast(`Đã chuyển sang xem thông tin của con: ${studentName}`, 'success');
+  }
+
   showToast(message: string, type: 'success' | 'danger' = 'success') {
     const id = ++this.toastIdCounter;
     const newToast: Toast = { id, message, type };
@@ -172,5 +212,75 @@ export class App implements OnInit {
     setTimeout(() => {
       this.toasts.update(current => current.filter(t => t.id !== id));
     }, 4000);
+  }
+
+  loadPaymentSettings() {
+    if (this.authService.currentUser()?.role === 'Manager') {
+      (this.apiService as any).getPaymentSettings().subscribe({
+        next: (res: any) => {
+          this.bankName.set(res.bankName || '');
+          this.bankAccountNumber.set(res.bankAccountNumber || '');
+          this.bankAccountName.set(res.bankAccountName || '');
+          this.paymentQrCode.set(res.paymentQrCode || '');
+        },
+        error: (err: any) => console.error('Error loading payment settings', err)
+      });
+    }
+  }
+
+  savePaymentSettings() {
+    const payload = {
+      bankName: this.bankName(),
+      bankAccountNumber: this.bankAccountNumber(),
+      bankAccountName: this.bankAccountName(),
+      paymentQrCode: this.paymentQrCode()
+    };
+    (this.apiService as any).savePaymentSettings(payload).subscribe({
+      next: () => {
+        this.showToast('Đã lưu cấu hình thanh toán thành công!', 'success');
+      },
+      error: (err: any) => {
+        this.showToast('Lỗi khi lưu cấu hình thanh toán.', 'danger');
+        console.error(err);
+      }
+    });
+  }
+
+  updateBankName(value: string) {
+    this.bankName.set(value);
+  }
+
+  updateBankAccountNumber(value: string) {
+    this.bankAccountNumber.set(value);
+  }
+
+  updateBankAccountName(value: string) {
+    this.bankAccountName.set(value);
+  }
+
+  onPaymentQrFileSelected(event: Event) {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      this.showToast('Vui lòng chọn file ảnh QR Code.', 'danger');
+      input.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      this.paymentQrCode.set(dataUrl);
+      this.savePaymentSettings();
+      input.value = '';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  clearPaymentQrCode() {
+    this.paymentQrCode.set('');
+    this.savePaymentSettings();
   }
 }

@@ -8,8 +8,10 @@ export interface User {
   fullName: string;
   email: string;
   phoneNumber: string;
-  role: 'Manager' | 'Teacher';
+  role: 'Manager' | 'Teacher' | 'Parent' | 'Student';
   token?: string;
+  studentId?: number;
+  associatedStudents?: Array<{ id: number, name: string }>;
 }
 
 @Injectable({

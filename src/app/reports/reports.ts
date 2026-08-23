@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, signal, effect, inject } from '@angular/core';
+import { Component, OnInit, signal, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, StudentTuitionRow, TuitionPeriod } from '../api.service';
@@ -862,7 +862,7 @@ export class ReportsComponent implements OnInit {
     }
 
     const rowsInRange = this.tuitionRows().filter(row => {
-      const candidatePeriodIds = (row.payablePeriodIds?.length ? row.payablePeriodIds : row.classPeriodIds) || [];
+      const candidatePeriodIds = row.payablePeriodIds || [];
       if (candidatePeriodIds.length) {
         return candidatePeriodIds.some(periodId => selectedPeriodIds.has(Number(periodId)));
       }

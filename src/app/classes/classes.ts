@@ -1,4 +1,4 @@
-﻿import { Component, OnInit, signal, effect, inject } from '@angular/core';
+import { Component, OnInit, signal, effect, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService, Class, ClassSchedule, UserAccount } from '../api.service';
@@ -23,6 +23,41 @@ interface Subject {
         </button>
       </div>
 
+      <!-- Filters Toolbar -->
+      <div class="card toolbar-card">
+        <div class="filters-row">
+          <!-- Teacher filter -->
+          <div class="form-group select-group">
+            <select class="form-control" [(ngModel)]="teacherFilterId" (ngModelChange)="applyFilters()">
+              <option [ngValue]="0">Tất cả giáo viên</option>
+              @for (t of teachers(); track t.id) {
+                <option [ngValue]="t.id">{{ t.fullName }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Subject filter -->
+          <div class="form-group select-group">
+            <select class="form-control" [(ngModel)]="subjectFilterId" (ngModelChange)="applyFilters()">
+              <option [ngValue]="0">Tất cả môn học</option>
+              @for (s of subjects(); track s.id) {
+                <option [ngValue]="s.id">{{ s.name }}</option>
+              }
+            </select>
+          </div>
+
+          <!-- Status filter -->
+          <div class="form-group select-group">
+            <select class="form-control" [(ngModel)]="statusFilter" (ngModelChange)="applyFilters()">
+              <option value="All">Tất cả trạng thái</option>
+              <option value="NotStarted">Chưa bắt đầu</option>
+              <option value="Active">Đang hoạt động</option>
+              <option value="Ended">Kết thúc</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
       <!-- Classes Table -->
       <div class="table-container">
         <table class="data-table">
@@ -32,13 +67,14 @@ interface Subject {
               <th style="text-align: left;">Giáo viên</th>
               <th style="text-align: left;">Tên lớp học</th>
               <th style="text-align: left;">Môn học</th>
+              <th style="text-align: center; width: 130px;">Trạng thái</th>
               <th style="text-align: right; width: 140px;">Học phí chuẩn</th>
               <th style="text-align: left;">Lịch học tuần</th>
               <th style="width: 280px; text-align: center;">Hành động</th>
             </tr>
           </thead>
           <tbody>
-            @for (c of classes(); track c.id) {
+            @for (c of filteredClasses(); track c.id) {
               <tr>
                 <td style="text-align: center; color: var(--text-muted);">{{ c.id }}</td>
                 <td>
@@ -57,6 +93,19 @@ interface Subject {
                   <span *ngIf="!c.subjectId" style="color: var(--text-muted); font-size: 0.85rem; font-style: italic;">
                     Chưa gán môn
                   </span>
+                </td>
+                <td style="text-align: center;">
+                  @switch (getClassStatus(c)) {
+                    @case ('NotStarted') {
+                      <span class="badge badge-secondary">Chưa bắt đầu</span>
+                    }
+                    @case ('Active') {
+                      <span class="badge badge-success">Đang hoạt động</span>
+                    }
+                    @case ('Ended') {
+                      <span class="badge badge-danger">Kết thúc</span>
+                    }
+                  }
                 </td>
                 <td style="text-align: right; font-weight: 600; color: #86efac;">
                   {{ formatTuition(c.tuitionFee) }}
@@ -91,8 +140,8 @@ interface Subject {
               </tr>
             } @empty {
               <tr>
-                <td colspan="7" style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">
-                  Chưa có lớp học nào trong học kỳ này.
+                <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-secondary);">
+                  Chưa có lớp học nào phù hợp.
                 </td>
               </tr>
             }
@@ -562,6 +611,31 @@ interface Subject {
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.75rem;
     }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+    }
+    .toolbar-card {
+      padding: 1rem 1.5rem;
+      flex-shrink: 0;
+    }
+    .filters-row {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+      flex-wrap: wrap;
+    }
+    .select-group {
+      margin-bottom: 0;
+      width: 200px;
+    }
+    .badge-secondary {
+      background: rgba(148, 163, 184, 0.12);
+      color: var(--text-secondary);
+      border: 1px solid rgba(148, 163, 184, 0.2);
+    }
     @media (max-width: 560px) {
       .schedule-modal {
         width: calc(100vw - 2rem);
@@ -597,6 +671,12 @@ export class ClassesComponent implements OnInit {
   public users = signal<UserAccount[]>([]);
   public formError = signal<string>('');
   public scheduleError = signal<string>('');
+
+  // Filters
+  public teacherFilterId = 0;
+  public subjectFilterId = 0;
+  public statusFilter = 'All';
+  public filteredClasses = signal<Class[]>([]);
 
   public showAddModal = signal<boolean>(false);
   public modalMode = signal<'add' | 'edit'>('add');
@@ -647,7 +727,44 @@ export class ClassesComponent implements OnInit {
   }
 
   loadClasses(semesterId: number) {
-    this.apiService.getClasses(semesterId).subscribe(data => this.classes.set(data));
+    this.apiService.getClasses(semesterId).subscribe(data => {
+      this.classes.set(data);
+      this.applyFilters();
+    });
+  }
+
+  getClassStatus(c: Class): string {
+    const today = new Date().toISOString().split('T')[0];
+    if (c.startDate && c.startDate > today) {
+      return 'NotStarted';
+    }
+    if (c.endDate && c.endDate < today) {
+      return 'Ended';
+    }
+    return 'Active';
+  }
+
+  applyFilters() {
+    let list = this.classes();
+
+    // Filter by Teacher
+    const teacherId = Number(this.teacherFilterId);
+    if (teacherId > 0) {
+      list = list.filter(c => c.teacherId === teacherId);
+    }
+
+    // Filter by Subject
+    const subjectId = Number(this.subjectFilterId);
+    if (subjectId > 0) {
+      list = list.filter(c => c.subjectId === subjectId);
+    }
+
+    // Filter by Status
+    if (this.statusFilter && this.statusFilter !== 'All') {
+      list = list.filter(c => this.getClassStatus(c) === this.statusFilter);
+    }
+
+    this.filteredClasses.set(list);
   }
 
   loadSubjects() {
