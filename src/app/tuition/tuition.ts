@@ -802,7 +802,10 @@ export class TuitionComponent implements OnInit {
   applyFilters() {
     let list = this.students();
 
-    // 1. Filter by Search Query
+    // 1. Only display active enrollments
+    list = list.filter(s => s.enrollmentStatus === 'Active');
+
+    // 2. Filter by Search Query
     if (this.searchQuery.trim()) {
       const query = this.searchQuery.toLowerCase().trim();
       list = list.filter(s => 
@@ -811,13 +814,13 @@ export class TuitionComponent implements OnInit {
       );
     }
 
-    // 2. Filter by Class
+    // 3. Filter by Class
     const selectedClassId = Number(this.selectedClassId);
     if (selectedClassId > 0) {
       list = list.filter(s => s.classId === selectedClassId);
     }
 
-    // 3. Filter by Payment Status across all payable months in each row
+    // 4. Filter by Payment Status across all payable months in each row
     if (this.paymentStatusFilter !== 'all') {
       const hasPayableMonths = (row: StudentTuitionRow) => this.getFilteredPayablePeriodIds(row).length > 0;
       const isPeriodPaid = (row: StudentTuitionRow, periodId: number) => {
