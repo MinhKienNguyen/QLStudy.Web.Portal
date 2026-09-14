@@ -240,6 +240,13 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0 auto;
 }
 
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1.25rem;
+  margin-bottom: 2rem;
+}
+
 /* Premium Card Designs */
 .card {
   background-color: var(--bg-secondary);
@@ -810,6 +817,12 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* Responsive Overrides */
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .app-container {
     grid-template-columns: 1fr !important;

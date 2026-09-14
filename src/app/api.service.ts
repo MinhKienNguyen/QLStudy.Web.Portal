@@ -100,6 +100,7 @@ export interface StudentTuitionRow {
   adjustments?: { [periodId: string]: TuitionAdjustmentInfo };
   payments: { [periodId: string]: PaymentInfo };
   enrollmentStatus?: string;
+  enrollments?: StudentClassEnrollment[];
 }
 
 export interface TuitionMatrix {

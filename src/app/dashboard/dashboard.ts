@@ -11,7 +11,7 @@ import { AuthService } from '../auth.service';
     <!-- ADMIN / TEACHER DASHBOARD VIEW -->
     <div class="dashboard-container" *ngIf="isAdminOrTeacher()">
       <div class="welcome-header">
-        <h1>Bảng Tổng Quan</h1>
+        <h1>Tổng quan</h1>
         <p>Báo cáo tình hình giảng dạy và thu học phí của trung tâm trong kỳ.</p>
       </div>
 
@@ -995,24 +995,14 @@ export class DashboardComponent implements OnInit {
   loadDashboardData(semesterId: number) {
     this.totalStudents.set(0);
     this.totalClasses.set(0);
-    this.apiService.getSemestersSummary().subscribe({
-      next: (summaryList) => {
-        const current = summaryList.find(s => s.semesterId === semesterId);
-        if (current) {
-          this.totalStudents.set(Number(current.totalStudents || 0));
-          this.totalClasses.set(Number(current.totalClasses || 0));
-        }
-      },
-      error: (err) => console.error('Error loading dashboard summary', err)
-    });
 
     this.apiService.getTuitionMatrix(semesterId).subscribe({
       next: (matrix: TuitionMatrix) => {
         const studentList = matrix.students;
         const periods = matrix.periods;
 
-        // Only count active enrollments
-        const activeStudents = studentList.filter(s => s.enrollmentStatus === 'Active');
+        // Only count rows where the latest enrollment is active.
+        const activeStudents = studentList.filter(s => this.isCurrentEnrollmentActive(s));
 
         // Calculate total unique students
         const uniqueStudentIds = new Set(activeStudents.map(s => Number(s.studentId)));
@@ -1042,7 +1032,11 @@ export class DashboardComponent implements OnInit {
           let paid = 0;
           let unpaid = 0;
 
-          const payableRows = studentList.filter(s => this.isPayableInPeriod(s, selectedPeriod.id));
+          const payableRows = activeStudents.filter(s => this.isPayableInPeriod(s, selectedPeriod.id));
+          const uniquePayableStudentIds = new Set(payableRows.map(s => Number(s.studentId)));
+          this.totalStudents.set(uniquePayableStudentIds.size);
+          this.totalClasses.set(new Set(payableRows.map(s => Number(s.classId))).size);
+
           payableRows.forEach(s => {
             const payment = s.payments[selectedPeriod.id.toString()];
             if (payment && payment.amountPaid > 0) {
@@ -1053,10 +1047,20 @@ export class DashboardComponent implements OnInit {
             }
           });
 
-          this.totalRevenue.set(revenue);
           this.paidCount.set(paid);
           this.unpaidCount.set(unpaid);
           this.paymentRatio.set(payableRows.length > 0 ? (paid / payableRows.length) * 100 : 0);
+
+          this.apiService.getMonthlyRevenue(semesterId, selectedPeriod.id, selectedPeriod.id).subscribe({
+            next: (data) => {
+              const periodRevenue = (data || []).reduce((sum, item) => sum + Number(item.amount || 0), 0);
+              this.totalRevenue.set(periodRevenue);
+            },
+            error: (err) => {
+              console.error('Error loading dashboard revenue', err);
+              this.totalRevenue.set(revenue);
+            }
+          });
         } else {
           this.latestMonthName.set('N/A');
           this.totalRevenue.set(0);
@@ -1104,6 +1108,16 @@ export class DashboardComponent implements OnInit {
     }
 
     return (row.classPeriodIds || []).map(Number).includes(Number(periodId));
+  }
+
+  private isCurrentEnrollmentActive(row: StudentTuitionRow): boolean {
+    const enrollments = row.enrollments || [];
+    if (enrollments.length > 0) {
+      const latestEnrollment = enrollments[enrollments.length - 1];
+      return latestEnrollment?.status === 'Active';
+    }
+
+    return row.enrollmentStatus === 'Active';
   }
 
   private periodSortValue(period: TuitionPeriod): number {

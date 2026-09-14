@@ -802,8 +802,8 @@ export class TuitionComponent implements OnInit {
   applyFilters() {
     let list = this.students();
 
-    // 1. Only display active enrollments
-    list = list.filter(s => s.enrollmentStatus === 'Active');
+    // 1. Only display rows where the latest enrollment is active.
+    list = list.filter(s => this.isCurrentEnrollmentActive(s));
 
     // 2. Filter by Search Query
     if (this.searchQuery.trim()) {
@@ -841,6 +841,16 @@ export class TuitionComponent implements OnInit {
     }
 
     this.filteredStudents.set(list);
+  }
+
+  private isCurrentEnrollmentActive(row: StudentTuitionRow): boolean {
+    const enrollments = row.enrollments || [];
+    if (enrollments.length > 0) {
+      const latestEnrollment = enrollments[enrollments.length - 1];
+      return latestEnrollment?.status === 'Active';
+    }
+
+    return row.enrollmentStatus === 'Active';
   }
 
   getGroupedStudents(): ClassGroup[] {
