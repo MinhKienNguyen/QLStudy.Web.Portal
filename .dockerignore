@@ -1,0 +1,9 @@
+.git
+.gitignore
+.angular
+.vs
+node_modules
+dist
+coverage
+*.log
+npm-debug.log*
